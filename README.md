@@ -6,6 +6,8 @@ Ein Schieber-Jass im Browser: Du spielst zusammen mit deiner Partnerin Vreni geg
 
 Öffne einfach `index.html` im Browser. Du brauchst weder Build-Schritt noch Abhängigkeiten.
 
+Für eine eigene Website: `npm run build` erzeugt `dist/jass.html`, das ganze Spiel in einer Datei. Die Datei kannst du auf jeden Webspace hochladen, zum Beispiel GitHub Pages oder Netlify.
+
 Alternativ mit lokalem Webserver:
 
 ```bash
