@@ -97,7 +97,8 @@ test('Abrechnung: Match und Multiplikator', () => {
 
 test('Computer spielt viele Runden nur regelkonforme Karten', () => {
   const random = rng(42);
-  for (let round = 0; round < 300; round++) {
+  let slalomRounds = 0;
+  for (let round = 0; round < 1000; round++) {
     const hands = R.deal(random);
     const starter = round % 4;
     let mode = AI.chooseMode(hands[starter], true);
@@ -113,22 +114,53 @@ test('Computer spielt viele Runden nur regelkonforme Karten', () => {
     let leader = starter;
     let lastTeam = 0;
     for (let t = 0; t < 9; t++) {
+      const tm = R.trickMode(mode, t);
       const tr = [];
       for (let i = 0; i < 4; i++) {
         const p = (leader + i) % 4;
-        const legal = R.legalCards(hands[p], tr, mode);
-        const card = AI.chooseCard({ hand: hands[p], legal, trick: tr, mode, player: p, declarer, played });
+        const legal = R.legalCards(hands[p], tr, tm);
+        const card = AI.chooseCard({ hand: hands[p], legal, trick: tr, mode: tm, player: p, declarer, played });
         assert.ok(legal.some(x => x.id === card.id), `illegale Karte ${card.id}`);
         hands[p] = hands[p].filter(x => x.id !== card.id);
         tr.push({ player: p, card });
         played.push(card);
       }
-      const win = R.trickWinner(tr, mode);
-      points[R.teamOf(win.player)] += R.trickPoints(tr, mode);
+      const win = R.trickWinner(tr, tm);
+      points[R.teamOf(win.player)] += R.trickPoints(tr, tm);
       leader = win.player;
       lastTeam = R.teamOf(win.player);
     }
     points[lastTeam] += R.LAST_TRICK_BONUS;
-    assert.equal(points[0] + points[1], 157);
+    if (mode.type === 'slalom') slalomRounds++;
+    else assert.equal(points[0] + points[1], 157);
   }
+  assert.ok(slalomRounds > 0, 'Computer wählt nie Slalom');
+});
+
+test('Slalom wechselt Obenabe und Undenufe ab', () => {
+  const oben = { type: 'slalom', start: 'obe' };
+  const unten = { type: 'slalom', start: 'unde' };
+  assert.deepEqual([0, 1, 2, 3].map(t => R.trickMode(oben, t).type), ['obe', 'unde', 'obe', 'unde']);
+  assert.deepEqual([0, 1, 2].map(t => R.trickMode(unten, t).type), ['unde', 'obe', 'unde']);
+  assert.equal(R.trickMode(TRUMP_H, 5), TRUMP_H);
+  const tr = trick([0, 'S7'], [1, 'S6'], [2, 'SA'], [3, 'D6']);
+  assert.equal(R.trickWinner(tr, R.trickMode(oben, 0)).player, 2);
+  assert.equal(R.trickWinner(tr, R.trickMode(oben, 1)).player, 1);
+  assert.equal(R.modeMultiplier(oben), 3);
+  assert.equal(R.modeLabel(unten), 'Slalom unten');
+});
+
+test('Deutschschweizer Blatt: Namen für Farben, Karten und Weis', () => {
+  try {
+    R.setDeckStyle('de');
+    assert.equal(R.modeLabel({ type: 'trump', suit: 'H' }), 'Rosen');
+    assert.equal(R.suitName('D'), 'Schellen');
+    assert.equal(R.rankName('10'), 'Banner');
+    assert.equal(R.rankLabel('J'), 'U');
+    assert.equal(R.weisLabel(R.findWeis(hand(['C8', 'C9', 'C10']))[0]), 'Dreiblatt Eicheln bis B');
+    assert.equal(R.weisLabel(R.findWeis(hand(['SJ', 'HJ', 'DJ', 'CJ']))[0]), 'Vier Under');
+  } finally {
+    R.setDeckStyle('fr');
+  }
+  assert.equal(R.modeLabel({ type: 'trump', suit: 'H' }), '♥ Herz');
 });

@@ -6,11 +6,36 @@
   'use strict';
 
   const SUITS = ['S', 'H', 'C', 'D'];
-  const SUIT_SYMBOL = { S: '♠', H: '♥', D: '♦', C: '♣' };
-  const SUIT_NAME = { S: 'Schaufel', H: 'Herz', D: 'Ecken', C: 'Kreuz' };
   const RANKS = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-  const RANK_LABEL = { 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', J: 'B', Q: 'D', K: 'K', A: 'A' };
-  const RANK_NAME = { 6: 'Sechs', 7: 'Sieben', 8: 'Acht', 9: 'Neun', 10: 'Zehn', J: 'Bauer', Q: 'Dame', K: 'König', A: 'Ass' };
+  // Französisches Blatt und deutschschweizer Blatt. Intern gelten immer die französischen Kürzel:
+  // Schaufel ↔ Schilten, Herz ↔ Rosen, Kreuz ↔ Eicheln, Ecken ↔ Schellen.
+  const DECKS = {
+    fr: {
+      name: 'Französisch',
+      symbol: { S: '♠', H: '♥', D: '♦', C: '♣' },
+      suitName: { S: 'Schaufel', H: 'Herz', D: 'Ecken', C: 'Kreuz' },
+      rankLabel: { 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', J: 'B', Q: 'D', K: 'K', A: 'A' },
+      rankName: { 6: 'Sechs', 7: 'Sieben', 8: 'Acht', 9: 'Neun', 10: 'Zehn', J: 'Bauer', Q: 'Dame', K: 'König', A: 'Ass' },
+      quadName: { J: 'Vier Bauern', 9: 'Vier Neuner', A: 'Vier Asse', K: 'Vier Könige', Q: 'Vier Damen', 10: 'Vier Zehner' },
+    },
+    de: {
+      name: 'Deutschschweizer',
+      symbol: { S: '', H: '', D: '', C: '' },
+      suitName: { S: 'Schilten', H: 'Rosen', D: 'Schellen', C: 'Eicheln' },
+      rankLabel: { 6: '6', 7: '7', 8: '8', 9: '9', 10: 'B', J: 'U', Q: 'O', K: 'K', A: 'A' },
+      rankName: { 6: 'Sechs', 7: 'Sieben', 8: 'Acht', 9: 'Neun', 10: 'Banner', J: 'Under', Q: 'Ober', K: 'König', A: 'Ass' },
+      quadName: { J: 'Vier Under', 9: 'Vier Neuner', A: 'Vier Asse', K: 'Vier Könige', Q: 'Vier Ober', 10: 'Vier Banner' },
+    },
+  };
+  let deck = DECKS.fr;
+
+  function setDeckStyle(style) { deck = DECKS[style] || DECKS.fr; }
+  const suitSymbol = suit => deck.symbol[suit];
+  const suitName = suit => deck.suitName[suit];
+  const rankLabel = rank => deck.rankLabel[rank];
+  const rankName = rank => deck.rankName[rank];
+  // Kurzform für Texte: Symbol beim französischen, Name beim deutschschweizer Blatt.
+  const suitShort = suit => deck.symbol[suit] || deck.suitName[suit];
   // Reihenfolge der Trumpfkarten von schwach nach stark: Bauer (Buur) und Nell (9) sind die höchsten.
   const TRUMP_ORDER = ['6', '7', '8', '10', 'Q', 'K', 'A', '9', 'J'];
   const TRUMP_POINTS = { J: 20, 9: 14, A: 11, 10: 10, K: 4, Q: 3 };
@@ -25,7 +50,17 @@
     ...SUITS.map(suit => ({ type: 'trump', suit })),
     { type: 'obe' },
     { type: 'unde' },
+    { type: 'slalom', start: 'obe' },
+    { type: 'slalom', start: 'unde' },
   ];
+
+  // Beim Slalom wechseln Obenabe und Undenufe von Stich zu Stich.
+  // Alle Funktionen für einen einzelnen Stich erwarten den so aufgelösten Modus.
+  function trickMode(mode, trickIndex) {
+    if (mode.type !== 'slalom') return mode;
+    const startsObe = mode.start === 'obe';
+    return { type: (trickIndex % 2 === 0) === startsObe ? 'obe' : 'unde' };
+  }
 
   function createDeck() {
     const deck = [];
@@ -204,15 +239,14 @@
   function modeLabel(mode) {
     if (mode.type === 'obe') return 'Obenabe';
     if (mode.type === 'unde') return 'Undenufe';
-    return `${SUIT_SYMBOL[mode.suit]} ${SUIT_NAME[mode.suit]}`;
+    if (mode.type === 'slalom') return `Slalom ${mode.start === 'obe' ? 'oben' : 'unten'}`;
+    return [suitSymbol(mode.suit), suitName(mode.suit)].filter(Boolean).join(' ');
   }
 
   function weisLabel(w) {
-    if (w.type === 'quad') {
-      return { J: 'Vier Bauern', 9: 'Vier Neuner', A: 'Vier Asse', K: 'Vier Könige', Q: 'Vier Damen', 10: 'Vier Zehner' }[w.rank];
-    }
+    if (w.type === 'quad') return deck.quadName[w.rank];
     const names = { 3: 'Dreiblatt', 4: 'Vierblatt', 5: 'Fünfblatt', 6: 'Sechsblatt', 7: 'Siebenblatt', 8: 'Achtblatt', 9: 'Neunblatt' };
-    return `${names[w.length]} ${SUIT_SYMBOL[w.suit]} bis ${RANK_LABEL[RANKS[w.high]]}`;
+    return `${names[w.length]} ${suitShort(w.suit)} bis ${rankLabel(RANKS[w.high])}`;
   }
 
   function sortHand(hand, mode) {
@@ -246,7 +280,8 @@
   }
 
   const api = {
-    SUITS, SUIT_SYMBOL, SUIT_NAME, RANKS, RANK_LABEL, RANK_NAME, ALL_MODES,
+    SUITS, RANKS, DECKS, ALL_MODES,
+    setDeckStyle, suitSymbol, suitName, suitShort, rankLabel, rankName, trickMode,
     LAST_TRICK_BONUS, MATCH_BONUS, STOECK_POINTS,
     createDeck, shuffle, deal, isTrump, partnerOf, teamOf,
     cardPoints, suitRank, cardStrength, trickWinner, trickPoints, legalCards,

@@ -12,6 +12,12 @@
   const minBy = (arr, f) => arr.reduce((best, x) => (f(x) < f(best) ? x : best));
 
   function evaluateMode(hand, mode) {
+    if (mode.type === 'slalom') {
+      // Sichere Stiche von oben UND von unten helfen beide; der erste Stich wiegt etwas mehr.
+      const first = evaluateMode(hand, R.trickMode(mode, 0));
+      const second = evaluateMode(hand, R.trickMode(mode, 1));
+      return Math.round(0.65 * first + 0.5 * second);
+    }
     if (mode.type === 'trump') {
       const trumps = hand.filter(c => c.suit === mode.suit);
       const has = rank => trumps.some(c => c.rank === rank);

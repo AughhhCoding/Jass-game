@@ -14,13 +14,17 @@ npm start
 
 ## Umfang
 
-- 36 Karten (französische Farben ♠ ♥ ♣ ♦), 4 Spieler, Gegenuhrzeigersinn
-- Trumpfwahl mit **Schieben**, dazu **Obenabe** und **Undenufe**
-- Regeln: Farbe angeben, stechen erlaubt, Untertrumpfen verboten, Bauer muss nicht angegeben werden
+- 36 Karten, wahlweise **französisch** (♠ ♥ ♣ ♦) oder **deutschschweizer** (Schellen, Schilten, Rosen, Eicheln)
+- 4 Spieler, Gegenuhrzeigersinn
+- Trumpfwahl mit **Schieben**, dazu **Obenabe**, **Undenufe** und **Slalom** (oben oder unten beginnend: Obenabe und Undenufe wechseln von Stich zu Stich)
+- Regeln: Farbe angeben, stechen erlaubt, Untertrumpfen verboten, Bauer/Under muss nicht angegeben werden
 - **Weis** (Folgen ab drei Karten, Vierlinge) und **Stöck**
 - Letzter Stich +5, **Match** +100
-- Optionaler Multiplikator (♦♣ ×1, ♥♠ ×2, Obenabe/Undenufe ×3), Zielpunkte frei wählbar
+- **Bedanken**: Wer das Ziel erreicht, kann sich mitten in der Runde bedanken und gewinnt sofort. Ein falsches Bedanken verliert das Spiel. Wahlweise bedankst du dich selbst, oder es geschieht automatisch. Die Gegner bedanken sich immer automatisch. Geschrieben wird in der Reihenfolge Stöck, Weis, Stich.
+- Optionaler Multiplikator (Ecken/Schellen und Kreuz/Eicheln ×1, Herz/Rosen und Schaufel/Schilten ×2, Obenabe/Undenufe/Slalom ×3), Zielpunkte frei wählbar
 - Computer-Spieler mit einfacher Strategie (Trumpf ziehen, schmieren, sichere Stiche)
+
+Zuordnung der Farben: Schaufel ↔ Schilten, Herz ↔ Rosen, Kreuz ↔ Eicheln, Ecken ↔ Schellen.
 
 ## Aufbau
 

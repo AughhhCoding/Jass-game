@@ -12,12 +12,32 @@
   const HUMAN = 0;
   const $ = id => document.getElementById(id);
 
-  const settings = { target: 1000, multipliers: true, speed: 1 };
+  const settings = { target: 1000, multipliers: true, speed: 1, deck: 'fr', bedanken: 'manual' };
   let game = null;
+  const shownTrickCards = new Set(); // nur neu gespielte Karten im Stich einblenden
+
+  // Farbzeichen des deutschschweizer Blatts als kleine SVG-Grafiken.
+  const ROSE_PETALS = [[12, 7], [16.8, 10.5], [14.9, 16.1], [9.1, 16.1], [7.2, 10.5]]
+    .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4"/>`).join('');
+  const GERMAN_SUIT_SVG = {
+    D: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2.5" stroke="#7a5300" stroke-width="1.8"/>' +
+      '<circle cx="12" cy="13" r="8" fill="#e5ab2a" stroke="#7a5300" stroke-width="1.2"/>' +
+      '<path d="M4.6 10.5h14.8" stroke="#7a5300" stroke-width="1.2"/>' +
+      '<path d="M12 15v6" stroke="#5a3d00" stroke-width="1.2"/><circle cx="12" cy="15.5" r="1.8" fill="#5a3d00"/></svg>',
+    H: `<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#d23a3a" stroke="#8b1a1a" stroke-width=".8">${ROSE_PETALS}</g>` +
+      '<circle cx="12" cy="12" r="3.2" fill="#f2c94c" stroke="#8b6b00" stroke-width=".8"/></svg>',
+    S: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v8c0 5-4 8.5-8 10-4-1.5-8-5-8-10z" fill="#f2c94c"/>' +
+      '<path d="M4 3h16v5H4z" fill="#c62828"/><path d="M12 8v13" stroke="#2b2b2b" stroke-width="1.2"/>' +
+      '<path d="M4 3h16v8c0 5-4 8.5-8 10-4-1.5-8-5-8-10z" fill="none" stroke="#2b2b2b" stroke-width="1.3"/></svg>',
+    C: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6V2" stroke="#4a3210" stroke-width="1.6"/>' +
+      '<ellipse cx="12" cy="15" rx="5.2" ry="6.8" fill="#c98a3b" stroke="#6b4210" stroke-width="1"/>' +
+      '<path d="M5.8 12.5C6.5 5 17.5 5 18.2 12.5z" fill="#6b8a33" stroke="#33461a" stroke-width="1"/>' +
+      '<path d="M8 9.5h8M7 11.3h10" stroke="#33461a" stroke-width=".6"/></svg>',
+  };
 
   // ---------- Hilfsfunktionen ----------
 
-  // Wartet; bricht still ab (löst nie auf), wenn inzwischen ein neues Spiel gestartet wurde.
+  // Wartet; bricht still ab (löst nie auf), wenn das Spiel inzwischen beendet oder neu gestartet wurde.
   function delay(ms) {
     const token = game.token;
     return new Promise(resolve => setTimeout(() => {
@@ -43,24 +63,53 @@
     return player === HUMAN ? `Du ${du}` : `${NAMES[player]} ${er}`;
   }
 
+  const isRedSuit = suit => settings.deck === 'fr' && (suit === 'H' || suit === 'D');
+
+  function suitIcon(suit) {
+    if (settings.deck === 'de') return `<span class="suit-svg">${GERMAN_SUIT_SVG[suit]}</span>`;
+    return `<span class="suit-sym">${R.suitSymbol(suit)}</span>`;
+  }
+
+  function modeHtml(mode) {
+    if (mode.type === 'trump') return `${suitIcon(mode.suit)} ${R.suitName(mode.suit)}`;
+    return R.modeLabel(mode);
+  }
+
+  const arrow = mode => (mode.type === 'obe' ? '↓' : '↑');
+
   function cardEl(card, mode) {
     const el = document.createElement('div');
-    const red = card.suit === 'H' || card.suit === 'D';
-    const label = R.RANK_LABEL[card.rank];
-    const sym = R.SUIT_SYMBOL[card.suit];
-    el.className = 'card' + (red ? ' red' : '') + (mode && R.isTrump(card, mode) ? ' trump' : '');
-    el.setAttribute('aria-label', `${R.SUIT_NAME[card.suit]} ${R.RANK_NAME[card.rank]}`);
+    const label = R.rankLabel(card.rank);
+    const icon = suitIcon(card.suit);
+    el.className = `card deck-${settings.deck} suit-${card.suit}` +
+      (isRedSuit(card.suit) ? ' red' : '') +
+      (mode && R.isTrump(card, mode) ? ' trump' : '');
+    el.setAttribute('aria-label', `${R.suitName(card.suit)} ${R.rankName(card.rank)}`);
     el.innerHTML =
-      `<span class="corner tl">${label}<br>${sym}</span>` +
-      `<span class="pip">${sym}</span>` +
-      `<span class="corner br">${label}<br>${sym}</span>`;
+      `<span class="corner tl">${label}<br>${icon}</span>` +
+      `<span class="pip">${icon}</span>` +
+      `<span class="corner br">${label}<br>${icon}</span>`;
     return el;
   }
 
   function backEl() {
     const el = document.createElement('div');
-    el.className = 'card back';
+    el.className = `card back deck-${settings.deck}`;
     return el;
+  }
+
+  // Punkte eines Teams inklusive allem, was in dieser Runde schon geschrieben ist.
+  function livePoints(team) {
+    const g = game;
+    if (!g.mode || g.roundScored) return g.scores[team];
+    let points = g.cardPoints[team];
+    if (g.tricksPlayed === 9 && g.lastTrickTeam === team) {
+      points += R.LAST_TRICK_BONUS;
+      if (g.tricks[team] === 9) points += R.MATCH_BONUS;
+    }
+    if (g.weisResult && g.weisResult.team === team) points += g.weisResult.points;
+    if (g.stoeckTeam === team) points += R.STOECK_POINTS;
+    return g.scores[team] + points * g.multiplier;
   }
 
   // ---------- Darstellung ----------
@@ -71,11 +120,22 @@
     $('score-1').textContent = g.scores[1];
     $('target').textContent = settings.target;
 
-    const modeText = g.mode
-      ? `${R.modeLabel(g.mode)}${settings.multipliers ? ` ×${R.modeMultiplier(g.mode)}` : ''}`
-      : 'Kein Trumpf';
-    $('mode-display').textContent = modeText;
-    $('mode-display').classList.toggle('red', !!g.mode && g.mode.type === 'trump' && (g.mode.suit === 'H' || g.mode.suit === 'D'));
+    const modeEl = $('mode-display');
+    if (g.mode) {
+      let html = modeHtml(g.mode);
+      if (settings.multipliers) html += ` ×${R.modeMultiplier(g.mode)}`;
+      if (g.mode.type === 'slalom') {
+        const now = R.trickMode(g.mode, g.trickIndex);
+        html += ` <span class="mode-now">· ${arrow(now)} ${R.modeLabel(now)}</span>`;
+      }
+      modeEl.innerHTML = html;
+    } else {
+      modeEl.textContent = 'Kein Trumpf';
+    }
+    modeEl.classList.toggle('red', !!g.mode && g.mode.type === 'trump' && isRedSuit(g.mode.suit));
+
+    const canBedanken = settings.bedanken === 'manual' && !!g.mode && !g.roundScored && !g.over;
+    $('btn-bedanken').classList.toggle('hidden', !canBedanken);
 
     for (let p = 0; p < 4; p++) {
       const seat = $(`seat-${p}`);
@@ -105,11 +165,15 @@
 
     const trickEl = $('trick');
     trickEl.innerHTML = '';
-    const winner = g.trickWinner;
+    if (!g.trick.length) shownTrickCards.clear();
     for (const play of g.trick) {
       const el = cardEl(play.card, g.mode);
       el.classList.add('trick-card', `pos-${play.player}`);
-      if (winner !== null && winner === play.player) el.classList.add('winner');
+      if (!shownTrickCards.has(play.card.id)) {
+        el.classList.add('fresh');
+        shownTrickCards.add(play.card.id);
+      }
+      if (g.trickWinner === play.player) el.classList.add('winner');
       trickEl.appendChild(el);
     }
 
@@ -134,7 +198,8 @@
     $('round-info').innerHTML = g.mode
       ? `Runde ${g.round} · Stiche ${g.tricks[0]} : ${g.tricks[1]}<br>` +
         `Stichpunkte <b>${g.cardPoints[0]}</b> : <b>${g.cardPoints[1]}</b>` +
-        (g.weisResult ? `<br>Weis: ${TEAM_NAMES[g.weisResult.team]} (${g.weisResult.points})` : '')
+        (g.weisResult ? `<br>Weis: ${TEAM_NAMES[g.weisResult.team]} (${g.weisResult.points})` : '') +
+        (g.stoeckTeam >= 0 ? `<br>Stöck: ${TEAM_NAMES[g.stoeckTeam]}` : '')
       : (g.round ? `Runde ${g.round} · Trumpfwahl` : '–');
 
     $('status').textContent = g.pendingCard ? 'Du bist am Zug – wähle eine Karte.' : '';
@@ -153,30 +218,54 @@
     $('dialog').innerHTML = '';
   }
 
+  function multiplierText(deckStyle) {
+    const names = R.DECKS[deckStyle].suitName;
+    return `${names.D}/${names.C} ×1, ${names.H}/${names.S} ×2, Obenabe/Undenufe/Slalom ×3`;
+  }
+
   function showStartDialog() {
+    const option = (value, text, current) =>
+      `<option value="${value}"${String(value) === String(current) ? ' selected' : ''}>${text}</option>`;
     const dlg = openDialog(`
       <h2>Schieber-Jass</h2>
       <p>Du spielst mit Vreni gegen Sepp und Fritz.</p>
+      <label class="field">Karten
+        <select id="opt-deck">
+          ${option('fr', 'Französisch (♠ ♥ ♣ ♦)', settings.deck)}
+          ${option('de', 'Deutschschweizer (Schellen, Rosen …)', settings.deck)}
+        </select>
+      </label>
       <label class="field">Zielpunkte
         <select id="opt-target">
-          ${[1000, 1500, 2500, 3000].map(t => `<option value="${t}"${t === settings.target ? ' selected' : ''}>${t}</option>`).join('')}
+          ${[1000, 1500, 2500, 3000].map(t => option(t, t, settings.target)).join('')}
+        </select>
+      </label>
+      <label class="field">Bedanken
+        <select id="opt-bedanken">
+          ${option('manual', 'Selber bedanken', settings.bedanken)}
+          ${option('auto', 'Automatisch', settings.bedanken)}
         </select>
       </label>
       <label class="field">Tempo
         <select id="opt-speed">
-          <option value="0.6"${settings.speed === 0.6 ? ' selected' : ''}>Gemütlich</option>
-          <option value="1"${settings.speed === 1 ? ' selected' : ''}>Normal</option>
-          <option value="2"${settings.speed === 2 ? ' selected' : ''}>Schnell</option>
+          ${option(0.6, 'Gemütlich', settings.speed)}
+          ${option(1, 'Normal', settings.speed)}
+          ${option(2, 'Schnell', settings.speed)}
         </select>
       </label>
       <label class="field checkbox">
         <input type="checkbox" id="opt-mult"${settings.multipliers ? ' checked' : ''}>
-        Multiplikator (♦♣ ×1, ♥♠ ×2, Obenabe/Undenufe ×3)
+        <span>Multiplikator (<span id="mult-text">${multiplierText(settings.deck)}</span>)</span>
       </label>
       <div class="actions"><button class="btn" id="btn-start">Spiel starten</button></div>
     `);
+    dlg.querySelector('#opt-deck').addEventListener('change', e => {
+      dlg.querySelector('#mult-text').textContent = multiplierText(e.target.value);
+    });
     dlg.querySelector('#btn-start').addEventListener('click', () => {
+      settings.deck = dlg.querySelector('#opt-deck').value;
       settings.target = Number(dlg.querySelector('#opt-target').value);
+      settings.bedanken = dlg.querySelector('#opt-bedanken').value;
       settings.speed = Number(dlg.querySelector('#opt-speed').value);
       settings.multipliers = dlg.querySelector('#opt-mult').checked;
       closeDialog();
@@ -187,10 +276,13 @@
   function askHumanMode(canPush) {
     return new Promise(resolve => {
       const panel = $('center-panel');
-      const mult = mode => settings.multipliers ? `<small>×${R.modeMultiplier(mode)}</small>` : '';
+      const mult = mode => (settings.multipliers ? `<small>×${R.modeMultiplier(mode)}</small>` : '');
       const buttons = R.ALL_MODES.map((mode, i) => {
-        const red = mode.type === 'trump' && (mode.suit === 'H' || mode.suit === 'D');
-        return `<button class="btn mode-btn${red ? ' red' : ''}" data-mode="${i}">${R.modeLabel(mode)} ${mult(mode)}</button>`;
+        const red = mode.type === 'trump' && isRedSuit(mode.suit);
+        const hint = mode.type === 'slalom'
+          ? `<small class="hint">${mode.start === 'obe' ? '↓ ↑ ↓ …' : '↑ ↓ ↑ …'}</small>`
+          : '';
+        return `<button class="btn mode-btn${red ? ' red' : ''}" data-mode="${i}">${modeHtml(mode)} ${mult(mode)}${hint}</button>`;
       }).join('');
       panel.innerHTML = `
         <h3>${canPush ? 'Was spielst du?' : 'Vreni hat geschoben – du musst wählen!'}</h3>
@@ -224,7 +316,7 @@
       : '';
     return new Promise(resolve => {
       const dlg = openDialog(`
-        <h2>Runde ${g.round}: ${R.modeLabel(g.mode)}</h2>
+        <h2>Runde ${g.round}: ${modeHtml(g.mode)}</h2>
         ${matchText}
         <table class="summary">
           <thead><tr><th></th><th>Wir</th><th>Sie</th></tr></thead>
@@ -237,35 +329,84 @@
     });
   }
 
-  function showGameOver(winner) {
+  // Beendet das Spiel sofort – auch mitten in einer Runde (beim Bedanken).
+  function endGame(winner, reason) {
     const g = game;
-    const dlg = openDialog(`
-      <h2>${winner === 0 ? 'Gewonnen! 🏆' : 'Verloren'}</h2>
-      <p>${winner === 0 ? 'Du und Vreni habt' : 'Sepp und Fritz haben'} die ${settings.target} Punkte erreicht.</p>
-      <p class="final-score">Wir <b>${g.scores[0]}</b> : <b>${g.scores[1]}</b> Sie</p>
-      <div class="actions"><button class="btn" id="btn-again">Nochmals spielen</button></div>
-    `);
-    dlg.querySelector('#btn-again').addEventListener('click', () => { closeDialog(); showStartDialog(); });
+    if (g.over) return;
+    g.over = true;
+    g.token = Symbol('ended');
+    g.pendingCard = null;
+    g.legal = [];
+    g.current = null;
+    $('center-panel').classList.add('hidden');
+    const scores = [livePoints(0), livePoints(1)];
+    log(`Spielende: ${TEAM_NAMES[winner]} gewinnen. ${reason}`);
+    render();
+    setTimeout(() => {
+      if (game !== g) return;
+      const dlg = openDialog(`
+        <h2>${winner === 0 ? 'Gewonnen! 🏆' : 'Verloren'}</h2>
+        <p>${reason}</p>
+        <p class="final-score">Wir <b>${scores[0]}</b> : <b>${scores[1]}</b> Sie</p>
+        <div class="actions"><button class="btn" id="btn-again">Nochmals spielen</button></div>
+      `);
+      dlg.querySelector('#btn-again').addEventListener('click', () => { closeDialog(); showStartDialog(); });
+    }, 900);
+  }
+
+  // Nach jedem Punktgewinn: Hat sich ein Computer-Team bedankt?
+  function checkBedanken(team) {
+    const g = game;
+    if (g.over) return;
+    if (team === 0 && settings.bedanken !== 'auto') return;
+    const points = livePoints(team);
+    if (points < settings.target) return;
+    const speaker = team === 0 ? 2 : 1;
+    bubble(speaker, 'Bedanke mich!');
+    log(`${NAMES[speaker]} bedankt sich mit ${points} Punkten.`);
+    endGame(team, team === 0
+      ? `Vreni hat sich mit ${points} Punkten bedankt.`
+      : `${NAMES[speaker]} hat sich mit ${points} Punkten bedankt.`);
+  }
+
+  function humanBedanken() {
+    const g = game;
+    if (!g.mode || g.roundScored || g.over) return;
+    const points = livePoints(0);
+    bubble(HUMAN, 'Bedanke mich!');
+    log(`Du bedankst dich mit ${points} Punkten.`);
+    if (points >= settings.target) {
+      endGame(0, `Du hast dich mit ${points} Punkten richtig bedankt.`);
+    } else {
+      endGame(1, `Falsch bedankt: Wir hatten erst ${points} von ${settings.target} Punkten. Das Spiel geht an die Gegner.`);
+    }
   }
 
   // ---------- Spielablauf ----------
 
   function newGame() {
+    R.setDeckStyle(settings.deck);
     game = {
       token: Symbol('game'),
+      over: false,
       scores: [0, 0],
       round: 0,
       starter: 0,
       hands: [[], [], [], []],
       mode: null,
+      multiplier: 1,
       chooser: null,
       trick: [],
+      trickIndex: 0,
       trickWinner: null,
       played: [],
       lastTrick: null,
       tricks: [0, 0],
+      tricksPlayed: 0,
+      lastTrickTeam: -1,
       cardPoints: [0, 0],
       weisResult: null,
+      stoeckTeam: -1,
       current: null,
       pendingCard: null,
       legal: [],
@@ -280,12 +421,11 @@
     const g = game;
     for (;;) {
       const lastTrickTeam = await playRound();
-      if (g !== game) return;
+      if (g !== game || g.over) return;
       const [a, b] = g.scores;
       if (a >= settings.target || b >= settings.target) {
         const winner = a === b ? lastTrickTeam : (a > b ? 0 : 1);
-        log(`Spielende: ${TEAM_NAMES[winner]} gewinnen ${a} : ${b}.`);
-        showGameOver(winner);
+        endGame(winner, `${winner === 0 ? 'Du und Vreni habt' : 'Sepp und Fritz haben'} die ${settings.target} Punkte erreicht.`);
         return;
       }
     }
@@ -297,9 +437,9 @@
     return AI.chooseMode(game.hands[player], canPush);
   }
 
-  function getCard(player) {
+  function getCard(player, mode) {
     const g = game;
-    const legal = R.legalCards(g.hands[player], g.trick, g.mode);
+    const legal = R.legalCards(g.hands[player], g.trick, mode);
     if (player === HUMAN) {
       g.legal = legal;
       return new Promise(resolve => {
@@ -311,7 +451,7 @@
       hand: g.hands[player],
       legal,
       trick: g.trick,
-      mode: g.mode,
+      mode,
       player,
       declarer: g.chooser,
       played: g.played,
@@ -335,17 +475,18 @@
     const g = game;
     g.round++;
     g.hands = R.deal();
-    g.mode = null;
-    g.chooser = null;
-    g.trick = [];
-    g.trickWinner = null;
-    g.played = [];
-    g.lastTrick = null;
-    g.tricks = [0, 0];
-    g.cardPoints = [0, 0];
-    g.weisResult = null;
-    // In der ersten Runde beginnt, wer die Ecken-7 hat; danach im Gegenuhrzeigersinn weiter.
-    g.starter = g.round === 1 ? g.hands.findIndex(h => h.some(c => c.id === 'D7')) : (g.starter + 1) % 4;
+    Object.assign(g, {
+      mode: null, multiplier: 1, chooser: null, trick: [], trickIndex: 0, trickWinner: null,
+      played: [], lastTrick: null, tricks: [0, 0], tricksPlayed: 0, lastTrickTeam: -1,
+      cardPoints: [0, 0], weisResult: null, stoeckTeam: -1, roundScored: false,
+    });
+    // In der ersten Runde beginnt, wer die Ecken-7 (Schellen-7) hat; danach im Gegenuhrzeigersinn weiter.
+    if (g.round === 1) {
+      g.starter = g.hands.findIndex(h => h.some(c => c.id === 'D7'));
+      log(`${who(g.starter, 'hast', 'hat')} die ${R.suitName('D')}-7 und ${g.starter === HUMAN ? 'beginnst' : 'beginnt'}.`);
+    } else {
+      g.starter = (g.starter + 1) % 4;
+    }
     g.hands[HUMAN] = R.sortHand(g.hands[HUMAN], null);
     log(`Runde ${g.round}: ${who(g.starter, 'bestimmst', 'bestimmt')} den Trumpf.`);
     g.current = g.starter;
@@ -365,9 +506,9 @@
     }
     g.mode = choice;
     g.chooser = chooser;
-    const multiplier = settings.multipliers ? R.modeMultiplier(choice) : 1;
+    g.multiplier = settings.multipliers ? R.modeMultiplier(choice) : 1;
     bubble(chooser, R.modeLabel(choice));
-    log(`${who(chooser, 'wählst', 'wählt')} ${R.modeLabel(choice)}${multiplier > 1 ? ` (×${multiplier})` : ''}.`);
+    log(`${who(chooser, 'wählst', 'wählt')} ${R.modeLabel(choice)}${g.multiplier > 1 ? ` (×${g.multiplier})` : ''}.`);
     g.hands[HUMAN] = R.sortHand(g.hands[HUMAN], g.mode);
     g.current = null;
     render();
@@ -377,9 +518,10 @@
     const stoeckHolder = g.hands.findIndex(h => R.hasStoeck(h, g.mode));
     const isStoeckCard = c => R.isTrump(c, g.mode) && (c.rank === 'K' || c.rank === 'Q');
     let leader = g.starter;
-    let lastTrickTeam = 0;
 
     for (let t = 0; t < 9; t++) {
+      const mode = R.trickMode(g.mode, t);
+      g.trickIndex = t;
       g.trick = [];
       g.trickWinner = null;
       for (let i = 0; i < 4; i++) {
@@ -387,7 +529,7 @@
         g.current = p;
         render();
         if (p !== HUMAN) await delay(650);
-        const card = await getCard(p);
+        const card = await getCard(p, mode);
         g.hands[p] = g.hands[p].filter(c => c.id !== card.id);
         g.trick.push({ player: p, card });
         g.played.push(card);
@@ -396,52 +538,64 @@
           bubble(p, `${sum} weisen`);
           log(`${who(p, 'weist', 'weist')} ${sum}.`);
         }
+        g.current = null;
+        render();
+        // Stöck wird beim Ausspielen der zweiten Karte gemeldet und sofort geschrieben.
         if (p === stoeckHolder && isStoeckCard(card) && !g.hands[p].some(isStoeckCard)) {
           bubble(p, 'Stöck!');
           log(`${who(p, 'meldest', 'meldet')} Stöck.`);
+          g.stoeckTeam = R.teamOf(p);
+          render();
+          checkBedanken(g.stoeckTeam);
+          if (g.over) return g.stoeckTeam;
         }
-        g.current = null;
-        render();
       }
 
-      const win = R.trickWinner(g.trick, g.mode);
+      const win = R.trickWinner(g.trick, mode);
       const team = R.teamOf(win.player);
       g.trickWinner = win.player;
       render();
       await delay(1300);
 
-      g.cardPoints[team] += R.trickPoints(g.trick, g.mode);
-      g.tricks[team]++;
-      g.lastTrick = { cards: g.trick, winner: win.player };
-      g.trick = [];
-      g.trickWinner = null;
-      leader = win.player;
-      lastTrickTeam = team;
-
+      // Reihenfolge beim Schreiben: Stöck, Weis, Stich.
       if (t === 0) {
-        g.weisResult = R.resolveWeis(weis, g.starter, g.mode);
+        g.weisResult = R.resolveWeis(weis, g.starter, mode);
         if (g.weisResult) {
           const shown = [0, 1, 2, 3].filter(p => R.teamOf(p) === g.weisResult.team && weis[p].length);
           for (const p of shown) log(`${who(p, 'zeigst', 'zeigt')}: ${weisSummary(weis[p])}.`);
           log(`Weis zählt für ${TEAM_NAMES[g.weisResult.team]}: ${g.weisResult.points} Punkte.`);
+          checkBedanken(g.weisResult.team);
+          if (g.over) return team;
         }
       }
+
+      g.cardPoints[team] += R.trickPoints(g.trick, mode);
+      g.tricks[team]++;
+      g.tricksPlayed = t + 1;
+      g.lastTrickTeam = team;
+      g.lastTrick = { cards: g.trick, winner: win.player };
+      g.trick = [];
+      g.trickWinner = null;
+      leader = win.player;
       render();
+      checkBedanken(team);
+      if (g.over) return team;
     }
 
     const result = R.scoreRound({
       cardPoints: g.cardPoints,
       tricks: g.tricks,
-      lastTrickTeam,
+      lastTrickTeam: g.lastTrickTeam,
       weis: g.weisResult,
       stoeckTeam: stoeckHolder >= 0 ? R.teamOf(stoeckHolder) : -1,
-      multiplier,
+      multiplier: g.multiplier,
     });
     g.scores = g.scores.map((s, t) => s + result.total[t]);
+    g.roundScored = true;
     log(`Runde ${g.round}: Wir +${result.total[0]}, Sie +${result.total[1]}.`);
     render();
     await showRoundSummary(result);
-    return lastTrickTeam;
+    return g.lastTrickTeam;
   }
 
   // ---------- Start ----------
@@ -451,11 +605,12 @@
     $('center-panel').classList.add('hidden');
     showStartDialog();
   });
+  $('btn-bedanken').addEventListener('click', humanBedanken);
 
   game = {
-    token: null, scores: [0, 0], round: 0, hands: [[], [], [], []], mode: null, chooser: null,
-    trick: [], trickWinner: null, lastTrick: null, tricks: [0, 0], cardPoints: [0, 0],
-    weisResult: null, current: null, pendingCard: null, legal: [],
+    token: null, over: false, scores: [0, 0], round: 0, hands: [[], [], [], []], mode: null, chooser: null,
+    trick: [], trickIndex: 0, trickWinner: null, lastTrick: null, tricks: [0, 0], cardPoints: [0, 0],
+    weisResult: null, stoeckTeam: -1, current: null, pendingCard: null, legal: [],
   };
   render();
   showStartDialog();

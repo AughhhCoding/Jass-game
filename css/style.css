@@ -56,6 +56,15 @@ body {
   font-weight: 600;
 }
 .mode-display.red { color: var(--card-red); }
+.mode-display .mode-now { color: #555; font-weight: 500; }
+.btn.btn-bedanken { background: #e4572e; color: #fff; }
+
+/* ---------- Farbzeichen ---------- */
+
+.suit-svg { display: inline-block; width: 1em; height: 1em; vertical-align: -0.15em; }
+.suit-svg svg { display: block; width: 100%; height: 100%; }
+.card .corner .suit-svg { width: 0.95em; height: 0.95em; }
+.card .pip .suit-svg { width: 1.25em; height: 1.25em; }
 
 /* ---------- Buttons ---------- */
 
@@ -144,6 +153,10 @@ body {
   transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 .card.red { color: var(--card-red); }
+.card.deck-de.suit-H { color: #b3261e; }
+.card.deck-de.suit-D { color: #8a5a00; }
+.card.deck-de.suit-C { color: #5a3c12; }
+.card.deck-de { background: #fffaf0; }
 .card.trump { box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0, 0, 0, 0.35); }
 
 .card .corner {
@@ -171,6 +184,10 @@ body {
     repeating-linear-gradient(45deg, #8e1d1d 0 4px, #a82828 4px 8px);
   border: 2px solid #fff;
 }
+.card.back.deck-de {
+  background:
+    repeating-linear-gradient(45deg, #2f5d3a 0 4px, #3d7449 4px 8px);
+}
 
 .card.playable { cursor: pointer; }
 .card.playable:hover, .card.playable:focus-visible {
@@ -195,7 +212,8 @@ body {
   width: 0;
   height: 0;
 }
-.trick-card { position: absolute; margin-left: calc(var(--card-w) / -2); margin-top: calc(var(--card-h) / -2); animation: drop 0.2s ease-out; }
+.trick-card { position: absolute; margin-left: calc(var(--card-w) / -2); margin-top: calc(var(--card-h) / -2); }
+.trick-card.fresh { animation: drop 0.2s ease-out; }
 .trick-card.pos-0 { transform: translate(0, 62px); }
 .trick-card.pos-1 { transform: translate(78px, 0) rotate(-6deg); }
 .trick-card.pos-2 { transform: translate(0, -62px); }
@@ -241,7 +259,9 @@ body {
   text-align: center;
 }
 .center-panel h3 { margin: 0 0 12px; }
-.mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mode-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 6px; }
+.mode-btn .hint { font-size: 0.7rem; color: #777; }
 .mode-btn { background: var(--card-bg); color: var(--card-black); }
 .mode-btn.red { color: var(--card-red); }
 .mode-btn small { color: #777; font-weight: 400; }
@@ -319,4 +339,6 @@ body {
   .trick-card.pos-3 { transform: translate(-52px, 0) rotate(6deg); }
   .topbar h1 { font-size: 1rem; }
   .mode-grid { grid-template-columns: repeat(2, 1fr); }
+  .center-panel { top: 50%; padding: 12px; }
+  .topbar { gap: 8px; }
 }
