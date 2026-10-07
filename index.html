@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schieber-Jass</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Schieber-Jass</h1>
+    <div class="scoreboard">
+      <div class="score team-0">
+        <span class="score-label">Wir</span>
+        <span class="score-value" id="score-0">0</span>
+      </div>
+      <div class="score-target">Ziel <span id="target">1000</span></div>
+      <div class="score team-1">
+        <span class="score-label">Sie</span>
+        <span class="score-value" id="score-1">0</span>
+      </div>
+    </div>
+    <div class="mode-display" id="mode-display">Kein Trumpf</div>
+    <button class="btn btn-ghost" id="btn-new">Neues Spiel</button>
+  </header>
+
+  <main class="layout">
+    <section class="table" id="table">
+      <div class="seat seat-top" id="seat-2">
+        <div class="player-name"></div>
+        <div class="hand hand-back" id="hand-2"></div>
+        <div class="bubble" id="bubble-2"></div>
+      </div>
+      <div class="seat seat-left" id="seat-3">
+        <div class="player-name"></div>
+        <div class="hand hand-back" id="hand-3"></div>
+        <div class="bubble" id="bubble-3"></div>
+      </div>
+      <div class="seat seat-right" id="seat-1">
+        <div class="player-name"></div>
+        <div class="hand hand-back" id="hand-1"></div>
+        <div class="bubble" id="bubble-1"></div>
+      </div>
+
+      <div class="trick" id="trick"></div>
+      <div class="center-panel hidden" id="center-panel"></div>
+
+      <div class="seat seat-bottom" id="seat-0">
+        <div class="bubble" id="bubble-0"></div>
+        <div class="status" id="status"></div>
+        <div class="hand hand-human" id="hand-0"></div>
+        <div class="player-name"></div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="panel">
+        <h2>Diese Runde</h2>
+        <div class="round-info" id="round-info">–</div>
+      </div>
+      <div class="panel">
+        <h2>Letzter Stich</h2>
+        <div class="last-trick" id="last-trick"><span class="muted">Noch kein Stich</span></div>
+      </div>
+      <div class="panel panel-log">
+        <h2>Spielverlauf</h2>
+        <ul class="log" id="log"></ul>
+      </div>
+      <details class="panel rules">
+        <summary>Regeln in Kürze</summary>
+        <ul>
+          <li>Du (unten) spielst mit <b>Vreni</b> (oben) gegen Sepp und Fritz. Gespielt wird im Gegenuhrzeigersinn.</li>
+          <li>Wer am Zug ist, wählt Trumpf, Obenabe oder Undenufe – oder <b>schiebt</b> zum Partner.</li>
+          <li>Farbe muss angegeben werden; stechen ist immer erlaubt, <b>untertrumpfen</b> nicht. Den Trumpf-Bauer muss man nie angeben.</li>
+          <li>Trumpf-Reihenfolge: Bauer (20), Nell/9 (14), Ass, König, Dame, 10, 8, 7, 6.</li>
+          <li>Obenabe: Ass hoch, 8 zählt 8 Punkte. Undenufe: 6 hoch (11 Punkte), Ass zählt nichts.</li>
+          <li>Letzter Stich +5, alle Stiche (Match) +100. Weis und Stöck (König + Dame im Trumpf, 20) zählen extra.</li>
+          <li>Multiplikator (optional): ♦ ♣ ×1, ♥ ♠ ×2, Obenabe/Undenufe ×3.</li>
+        </ul>
+      </details>
+    </aside>
+  </main>
+
+  <div class="overlay hidden" id="overlay">
+    <div class="dialog" id="dialog" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <script src="js/rules.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
