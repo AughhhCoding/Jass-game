@@ -21,7 +21,9 @@ const body = html.match(/<body>([\s\S]*)<\/body>/)[1]
   .replace(/\s*<script src="[^"]+"><\/script>/g, '')
   .trim();
 const css = read('css/style.css') + '\n:root { color-scheme: dark; }\n';
-const scripts = ['js/rules.js', 'js/ai.js', 'js/game.js']
+// Alle Skripte in der Reihenfolge, in der index.html sie lädt.
+const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)]
+  .map(m => m[1])
   .map(file => `<script>\n${read(file)}</script>`)
   .join('\n');
 

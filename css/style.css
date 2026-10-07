@@ -157,6 +157,12 @@ body {
 .card.deck-de.suit-D { color: #8a5a00; }
 .card.deck-de.suit-C { color: #5a3c12; }
 .card.deck-de { background: #fffaf0; }
+/* Bildkarten: das Bild füllt die Mitte, die Ecken bleiben frei */
+.card .face-art { position: absolute; inset: 9% 17%; }
+.card .face-art > svg { display: block; width: 100%; height: 100%; }
+.card.face .corner { font-size: 0.75rem; }
+.card.face .tl { top: 4px; left: 3px; }
+.card.face .br { bottom: 4px; right: 3px; }
 .card.trump { box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0, 0, 0, 0.35); }
 
 .card .corner {
@@ -342,6 +348,8 @@ body {
   .card .pip { font-size: 1.4rem; }
   .card .corner { font-size: 0.7rem; }
   .card .br { display: none; }
+  .card.face .corner { font-size: 0.6rem; }
+  .card .face-art { inset: 7% 15%; }
   .hand-human .card + .card { margin-left: -10px; }
   .trick-card.pos-0 { transform: translate(0, 42px); }
   .trick-card.pos-1 { transform: translate(52px, 0) rotate(-6deg); }

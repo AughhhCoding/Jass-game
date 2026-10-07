@@ -85,11 +85,22 @@
       (isRedSuit(card.suit) ? ' red' : '') +
       (mode && R.isTrump(card, mode) ? ' trump' : '');
     el.setAttribute('aria-label', `${R.suitName(card.suit)} ${R.rankName(card.rank)}`);
+    const art = faceArt(card);
+    if (art) el.classList.add('face');
     el.innerHTML =
       `<span class="corner tl">${label}<br>${icon}</span>` +
-      `<span class="pip">${icon}</span>` +
+      (art ? `<span class="face-art">${art}</span>` : `<span class="pip">${icon}</span>`) +
       `<span class="corner br">${label}<br>${icon}</span>`;
     return el;
+  }
+
+  // Bild für Bube/Dame/König bzw. Under/Ober/König, sonst null.
+  function faceArt(card) {
+    if (!['J', 'Q', 'K'].includes(card.rank)) return null;
+    if (settings.deck === 'de') {
+      return window.JassGermanFaces ? window.JassGermanFaces.germanFace(card.suit, card.rank, GERMAN_SUIT_SVG[card.suit]) : null;
+    }
+    return (window.JassFrenchFaces && window.JassFrenchFaces[card.id]) || null;
   }
 
   function backEl() {

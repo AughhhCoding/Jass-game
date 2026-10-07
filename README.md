@@ -28,12 +28,18 @@ npm start
 
 Zuordnung der Farben: Schaufel ↔ Schilten, Herz ↔ Rosen, Kreuz ↔ Eicheln, Ecken ↔ Schellen.
 
+## Bildkarten
+
+- Französisches Blatt: Bube, Dame und König stammen von [Adrian Kennard](https://www.me.uk/cards/), gemeinfrei (CC0 1.0), übernommen aus dem npm-Paket [@letele/playing-cards](https://github.com/letele/playing-cards). Erzeugt mit `tools/extract-french-faces.mjs` nach `js/faces-fr.js`.
+- Deutschschweizer Blatt: Under, Ober und König sind eigene SVG-Zeichnungen (`js/faces-de.js`). Wie auf echten Jasskarten steht das Farbzeichen beim Ober oben und beim Under unten.
+
 ## Aufbau
 
 | Datei | Inhalt |
 | --- | --- |
 | `js/rules.js` | Spielregeln als reine Funktionen (Kartenwerte, erlaubte Karten, Stich, Weis, Abrechnung) |
 | `js/ai.js` | Computer-Spieler: Trumpfwahl und Kartenwahl |
+| `js/faces-fr.js`, `js/faces-de.js` | Bilder der Bildkarten |
 | `js/game.js` | Spielablauf und Darstellung im Browser |
 | `css/style.css` | Gestaltung |
 | `tests/` | Tests für Regeln und KI (`npm test`, Node ≥ 18) |
