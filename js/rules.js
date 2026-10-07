@@ -84,6 +84,10 @@
     return [0, 1, 2, 3].map(p => deck.slice(p * 9, p * 9 + 9));
   }
 
+  // Die Runde beginnt (und wählt den Trumpf), wer die Ecken-10 bzw. den Schellen-Banner hat.
+  const STARTER_CARD = 'D10';
+  const starterOf = hands => hands.findIndex(h => h.some(c => c.id === STARTER_CARD));
+
   const rankIndex = rank => RANKS.indexOf(rank);
   const isTrump = (card, mode) => mode.type === 'trump' && card.suit === mode.suit;
   const partnerOf = player => (player + 2) % 4;
@@ -283,6 +287,7 @@
     SUITS, RANKS, DECKS, ALL_MODES,
     setDeckStyle, suitSymbol, suitName, suitShort, rankLabel, rankName, trickMode,
     LAST_TRICK_BONUS, MATCH_BONUS, STOECK_POINTS,
+    STARTER_CARD, starterOf,
     createDeck, shuffle, deal, isTrump, partnerOf, teamOf,
     cardPoints, suitRank, cardStrength, trickWinner, trickPoints, legalCards,
     findWeis, compareWeis, resolveWeis, hasStoeck, modeMultiplier, modeLabel, weisLabel,

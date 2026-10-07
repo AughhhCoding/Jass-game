@@ -164,3 +164,12 @@ test('Deutschschweizer Blatt: Namen für Farben, Karten und Weis', () => {
   }
   assert.equal(R.modeLabel({ type: 'trump', suit: 'H' }), '♥ Herz');
 });
+
+test('Wer die Ecken-10 hat, beginnt die Runde', () => {
+  const random = rng(7);
+  for (let i = 0; i < 50; i++) {
+    const hands = R.deal(random);
+    const p = R.starterOf(hands);
+    assert.ok(hands[p].some(x => x.id === 'D10'));
+  }
+});

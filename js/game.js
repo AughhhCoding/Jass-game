@@ -480,15 +480,12 @@
       played: [], lastTrick: null, tricks: [0, 0], tricksPlayed: 0, lastTrickTeam: -1,
       cardPoints: [0, 0], weisResult: null, stoeckTeam: -1, roundScored: false,
     });
-    // In der ersten Runde beginnt, wer die Ecken-7 (Schellen-7) hat; danach im Gegenuhrzeigersinn weiter.
-    if (g.round === 1) {
-      g.starter = g.hands.findIndex(h => h.some(c => c.id === 'D7'));
-      log(`${who(g.starter, 'hast', 'hat')} die ${R.suitName('D')}-7 und ${g.starter === HUMAN ? 'beginnst' : 'beginnt'}.`);
-    } else {
-      g.starter = (g.starter + 1) % 4;
-    }
+    // In jeder Runde beginnt, wer die Ecken-10 (Schellen-Banner) hat.
+    g.starter = R.starterOf(g.hands);
+    const startCard = `${R.suitName('D')}-${R.rankName('10')}`;
     g.hands[HUMAN] = R.sortHand(g.hands[HUMAN], null);
-    log(`Runde ${g.round}: ${who(g.starter, 'bestimmst', 'bestimmt')} den Trumpf.`);
+    log(`Runde ${g.round}: ${who(g.starter, 'hast', 'hat')} die ${startCard} und ${g.starter === HUMAN ? 'bestimmst' : 'bestimmt'} den Trumpf.`);
+    bubble(g.starter, `${startCard}!`);
     g.current = g.starter;
     render();
 
