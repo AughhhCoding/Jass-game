@@ -480,12 +480,18 @@
       played: [], lastTrick: null, tricks: [0, 0], tricksPlayed: 0, lastTrickTeam: -1,
       cardPoints: [0, 0], weisResult: null, stoeckTeam: -1, roundScored: false,
     });
-    // In jeder Runde beginnt, wer die Ecken-10 (Schellen-Banner) hat.
-    g.starter = R.starterOf(g.hands);
-    const startCard = `${R.suitName('D')}-${R.rankName('10')}`;
+    // In der ersten Runde beginnt, wer die Ecken-10 (Schellen-Banner) hat; danach im Gegenuhrzeigersinn weiter.
     g.hands[HUMAN] = R.sortHand(g.hands[HUMAN], null);
-    log(`Runde ${g.round}: ${who(g.starter, 'hast', 'hat')} die ${startCard} und ${g.starter === HUMAN ? 'bestimmst' : 'bestimmt'} den Trumpf.`);
-    bubble(g.starter, `${startCard}!`);
+    if (g.round === 1) {
+      g.starter = R.starterOf(g.hands);
+      const startCard = `${R.suitName('D')}-${R.rankName('10')}`;
+      const article = settings.deck === 'de' ? 'den' : 'die'; // der Banner, die Zehn
+      log(`Runde 1: ${who(g.starter, 'hast', 'hat')} ${article} ${startCard} und ${g.starter === HUMAN ? 'bestimmst' : 'bestimmt'} den Trumpf.`);
+      bubble(g.starter, `${startCard}!`);
+    } else {
+      g.starter = (g.starter + 1) % 4;
+      log(`Runde ${g.round}: ${who(g.starter, 'bestimmst', 'bestimmt')} den Trumpf.`);
+    }
     g.current = g.starter;
     render();
 

@@ -17,7 +17,7 @@ npm start
 ## Umfang
 
 - 36 Karten, wahlweise **französisch** (♠ ♥ ♣ ♦) oder **deutschschweizer** (Schellen, Schilten, Rosen, Eicheln)
-- 4 Spieler, Gegenuhrzeigersinn. Wer die Ecken-10 (Schellen-Banner) hat, beginnt die Runde und wählt den Trumpf
+- 4 Spieler, Gegenuhrzeigersinn. In der ersten Runde beginnt, wer die Ecken-10 (Schellen-Banner) hat, danach geht es im Gegenuhrzeigersinn weiter
 - Trumpfwahl mit **Schieben**, dazu **Obenabe**, **Undenufe** und **Slalom** (oben oder unten beginnend: Obenabe und Undenufe wechseln von Stich zu Stich)
 - Regeln: Farbe angeben, stechen erlaubt, Untertrumpfen verboten, Bauer/Under muss nicht angegeben werden
 - **Weis** (Folgen ab drei Karten, Vierlinge) und **Stöck**
